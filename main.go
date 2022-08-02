@@ -1,5 +1,8 @@
 package email
 
+/**
+
+ */
 import (
 	"context"
 	"fmt"
@@ -9,34 +12,30 @@ import (
 	"net/mail"
 )
 
-var router *gin.Engine
+type EmailForm struct {
+	Email string `form:"email" binding:"required"`
+}
+
+const (
+	sheetsId = "[SHEETS-ID]"
+)
 
 func init() {
 	router := gin.Default()
 	router.POST("/", SendEmail)
 	//router.GET("/emails", getEmails)
 
-	router.Run()
-
-}
-
-func EmailEntrypoint(w http.ResponseWriter, r *http.Request) {
-	router.ServeHTTP(w, r) // ServeHTTP conforms to the http.Handler interface (https://godoc.org/github.com/gin-gonic/gin#Engine.ServeHTTP)
-}
-
-type EmailForm struct {
-	Email string `form:"email" binding:"required"`
-}
-
-const (
-	sheetsId = "1R-MhPdZLJ1W5JvuM0qkCOjlkCq2TeknOfV3ePhnPOPg"
-)
-
-func getEmails(context *gin.Context) {
-
+	err := router.Run()
+	if err != nil {
+		return
+	}
 }
 
 func SendEmail(c *gin.Context) {
+	// Setting headers to allow CORS
+	c.Header("Access-Control-Allow-Origin", "*")
+	c.Header("Access-Control-Allow-Headers", "access-control-allow-origin, access-control-allow-headers")
+
 	var form EmailForm
 	if err := c.Bind(&form); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
@@ -48,7 +47,11 @@ func SendEmail(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid email address."})
 		return
 	}
+
 	saveToSheets(email.Address)
+	c.JSON(http.StatusOK, gin.H{"status": "success"})
+
+	return
 }
 
 func saveToSheets(data string) {
